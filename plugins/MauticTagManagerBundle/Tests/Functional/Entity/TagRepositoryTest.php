@@ -10,22 +10,14 @@ use PHPUnit\Framework\Assert;
 
 class TagRepositoryTest extends MauticMysqlTestCase
 {
-    /**
-     * @var TagRepository
-     */
-    private $tagRepository;
-
-    /**
-     * @var TagModel
-     */
-    private $tagModel;
-
+    private TagRepository $tagRepository;
+    private int $lastId;
+    
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->tagRepository = self::$container->get('mautic.tagmanager.repository.tag');
-        $this->tagModel      = self::$container->get('mautic.tagmanager.repository.tag');
+        $this->tagRepository = self::getContainer()->get('mautic.tagmanager.repository.tag');
 
         $tags = [
             'tag1',
@@ -37,7 +29,8 @@ class TagRepositoryTest extends MauticMysqlTestCase
         foreach ($tags as $tagName) {
             $tag = new Tag();
             $tag->setTag($tagName);
-            $this->tagModel->saveEntity($tag);
+            $this->tagRepository->saveEntity($tag);
+            $this->lastId = $tag->getId();
         }
     }
 
@@ -46,4 +39,11 @@ class TagRepositoryTest extends MauticMysqlTestCase
         $count = $this->tagRepository->countOccurrences('tag2');
         Assert::assertSame(1, $count);
     }
+
+    public function testCountOccurencesReturnsCorrectQuantityOfMultipleTags(): void
+    {
+        $count = $this->tagRepository->countByLeads([1, $this->lastId]);
+        Assert::assertSame([1 => 0, $this->lastId => 1], $count);
+    }
+
 }
